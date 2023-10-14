@@ -7,10 +7,10 @@
 3. Model Deployment - 25% (15 questions)
 4. Solution and Data Monitoring - 15% (9 questions)
 
-## Section 1. Experimentation
+## Section 1. [Experimentation](./section_1_experimentation.md)
 
 ### Data Management
-- Read and write a Delta table
+- Read and write a Delta table  
 - View Delta table history and load a previous version of a Delta table
 - Create, overwrite, merge, and read Feature Store tables in machine learning
 workflows
