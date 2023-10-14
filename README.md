@@ -28,7 +28,7 @@ examples
 - Log and view artifacts like SHAP plots, custom visualizations, feature data, images,
 and metadata
 
-## Section 2: Model Lifecycle Management
+## Section 2: [Model Lifecycle Management](./section_2_model_lifecycle_management.md)
 
 ### Preprocessing Logic
 - Describe an MLflow flavor and the benefits of using MLflow flavors
@@ -55,7 +55,7 @@ given a scenario
 - Identify a use case for HTTP webhooks and where the Webhook URL needs to come.
 - Describe how to list all webhooks and how to delete a webhook
 
-## Section 3: Model Deployment
+## Section 3: [Model Deployment](./section_3_model_deployment.md)
 
 ### Batch
 - Describe batch deployment as the appropriate use case for the vast majority of
@@ -93,7 +93,7 @@ when fast prediction computations are needed
 - Identify how cloud-provided RESTful services in containers is the best solution for
 production-grade real-time deployments
 
-## Section 4: Solution and Data Monitoring
+## Section 4: [Solution and Data Monitoring](./section_4_solution_and_data_monitoring.md)
 
 ### Drift Types
 - Compare and contrast label drift and feature drift
@@ -111,6 +111,7 @@ simple summary statistics
 - Compare and contrast Jenson-Shannon divergence and Kolmogorov-Smirnov tests
 for numerical drift detection
 - Identify a scenario in which a chi-square test would be useful
+
 ### Comprehensive Drift Solutions
 - Describe a common workflow for measuring concept drift and feature drift
 - Identify when retraining and deploying an updated model is a probable solution to
