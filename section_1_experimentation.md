@@ -486,7 +486,7 @@ runs = mlflow.search_runs(
     run_view_type=ViewType.ALL,
 )
 ```
-#### Access models from experiment / run
+#### Access models from run
 
 ```Python
 run = mlflow.last_active_run()
@@ -500,8 +500,291 @@ model = mlflow.sklearn.load_model(f'runs:/{run.info.run_id}/sk_models')
 
 ### Perform MLflow experiment tracking workflows using model signatures and input examples
 
+#### Log model with input example
+```Python
+# Log column-based input example
+input_example = {
+    "sepal length (cm)": 5.1,
+    "sepal width (cm)": 3.5,
+    "petal length (cm)": 1.4,
+    "petal width (cm)": 0.2,
+}
+mlflow.sklearn.log_model(..., input_example=input_example)
+
+# Log tensor-based input example
+input_example = np.array(
+    [
+        [[0, 0, 0, 0], [0, 134, 25, 56], [253, 242, 195, 6], [0, 93, 82, 82]],
+        [[0, 23, 46, 0], [33, 13, 36, 166], [76, 75, 0, 255], [33, 44, 11, 82]],
+    ],
+    dtype=np.uint8,
+)
+mlflow.tensorflow.log_model(..., input_example=input_example)
+```
+
+#### Log model with signature
+
+##### Signature automatically inferred from input example
+```Python
+clf.fit(iris_train, iris.target)
+# Take the first row of the training dataset as the model input example.
+input_example = iris_train.iloc[[0]]
+# The signature is automatically inferred from the input example and its predicted output.
+mlflow.sklearn.log_model(clf, "iris_rf", input_example=input_example)
+```
+
+##### Signature explicitly constructed or inferrred
+```Python
+from mlflow.models import ModelSignature, infer_signature
+from mlflow.types.schema import Schema, ColSpec
+
+# Option 1: Manually construct the signature object
+input_schema = Schema(
+    [
+        ColSpec("double", "sepal length (cm)"),
+        ColSpec("double", "sepal width (cm)"),
+        ColSpec("double", "petal length (cm)"),
+        ColSpec("double", "petal width (cm)"),
+    ]
+)
+output_schema = Schema([ColSpec("long")])
+signature = ModelSignature(inputs=input_schema, outputs=output_schema)
+
+# Option 2: Infer the signature
+signature = infer_signature(iris_train, clf.predict(iris_train))
+
+with mlflow.start_run():
+    mlflow.sklearn.log_model(clf, "iris_rf", signature=signature)
+
+```
+
+##### Set signature on a logged model
+```Python
+import mlflow
+from mlflow.models.model import get_model_info
+from mlflow.models import infer_signature, set_signature
+
+# load the logged model
+model_uri = f"runs:/{run.info.run_id}/iris_rf"
+model = mlflow.pyfunc.load_model(model_uri)
+
+# construct the model signature from test dataset
+X_test, _ = datasets.load_iris(return_X_y=True, as_frame=True)
+signature = infer_signature(X_test, model.predict(X_test))
+
+# set the signature for the logged model
+set_signature(model_uri, signature)
+
+# now when you load the model again, it will have the desired signature
+assert get_model_info(model_uri).signature == signature
+
+```
+
 ### Identify the requirements for tracking nested runs
+
+**What are Parent and Child Runs?**
+At its core, MLflow allows users to track experiments, which are essentially named groups of runs. A “run” in this context refers to a single execution of a model training event, where you can log parameters, metrics, tags, and artifacts associated with the training process. The concept of Parent and Child Runs introduces a hierarchical structure to these runs.
+
+Imagine a scenario where you’re testing a deep learning model with different architectures. Each architecture can be considered a parent run, and every iteration of hyperparameter tuning for that architecture becomes a child run nested under its respective parent.
+
+**Benefits**
+
+*Organizational Clarity*: By using Parent and Child Runs, you can easily group related runs together. For instance, if you’re running a hyperparameter search using a Bayesian approach on a particular model architecture, every iteration can be logged as a child run, while the overarching Bayesian optimization process can be the parent run.
+
+*Enhanced Traceability*: When working on large projects with a broad product hierarchy, child runs can represent individual products or variants, making it straightforward to trace back results, metrics, or artifacts to their specific run.
+
+*Scalability*: As your experiments grow in number and complexity, having a nested structure ensures that your tracking remains scalable. It’s much easier to navigate through a structured hierarchy than a flat list of hundreds or thousands of runs.
+
+*Improved Collaboration*: For teams, this approach ensures that members can easily understand the structure and flow of experiments conducted by their peers, promoting collaboration and knowledge sharing.
+
+**Relationship between Experiments, Parent Runs, and Child Runs**
+
+*Experiments*: Consider experiments as the topmost layer. They are named entities under which all related runs reside. For instance, an experiment named “Deep Learning Architectures” might contain runs related to various architectures you’re testing.
+
+*Parent Runs*: Within an experiment, a parent run represents a significant segment or phase of your workflow. Taking the earlier example, each specific architecture (like CNN, RNN, or Transformer) can be a parent run.
+
+*Child Runs*: Nested within parent runs are child runs. These are iterations or variations within the scope of their parent. For a CNN parent run, different sets of hyperparameters or slight architectural tweaks can each be a child run.
+
+```Python
+# Create nested runs
+experiment_id = mlflow.create_experiment("experiment1")
+with mlflow.start_run(
+    run_name="PARENT_RUN",
+    experiment_id=experiment_id,
+    tags={"version": "v1", "priority": "P1"},
+    description="parent",
+) as parent_run:
+    mlflow.log_param("parent", "yes")
+    with mlflow.start_run(
+        run_name="CHILD_RUN",
+        experiment_id=experiment_id,
+        description="child",
+        nested=True,
+    ) as child_run:
+        mlflow.log_param("child", "yes")
+```
+
 
 ### Describe the process of enabling autologging, including with the use of Hyperopt
 
+Automatic logging allows you to log metrics, parameters, and models without the need for explicit log statements.
+There are two ways to use autologging:
+
+- Call `mlflow.autolog()` before your training code. This will enable autologging for each supported library you have installed as soon as you import it.
+- Use library-specific autolog calls for each library you use in your code.
+
+You can access the most recent autolog run through the `mlflow.last_active_run()` function.
+
+#### The default configuration for the mlflow.autolog() call is:
+```Python
+mlflow.autolog(
+    log_input_examples=False,
+    log_model_signatures=True,
+    log_models=True,
+    disable=False,
+    exclusive=True,
+    disable_for_unsupported_versions=True,
+    silent=True
+)
+```
+
+
+#### Sklearn autolog example
+```Python
+from pprint import pprint
+import numpy as np
+from sklearn.linear_model import LinearRegression
+import mlflow
+from mlflow import MlflowClient
+
+
+def fetch_logged_data(run_id):
+    client = MlflowClient()
+    data = client.get_run(run_id).data
+    tags = {k: v for k, v in data.tags.items() if not k.startswith("mlflow.")}
+    artifacts = [f.path for f in client.list_artifacts(run_id, "model")]
+    return data.params, data.metrics, tags, artifacts
+
+
+# enable autologging
+mlflow.sklearn.autolog()
+
+# prepare training data
+X = np.array([[1, 1], [1, 2], [2, 2], [2, 3]])
+y = np.dot(X, np.array([1, 2])) + 3
+
+# train a model
+model = LinearRegression()
+with mlflow.start_run() as run:
+    model.fit(X, y)
+
+# fetch logged data
+params, metrics, tags, artifacts = fetch_logged_data(run.info.run_id)
+
+pprint(params)
+# {'copy_X': 'True',
+#  'fit_intercept': 'True',
+#  'n_jobs': 'None',
+#  'normalize': 'False'}
+
+pprint(metrics)
+# {'training_score': 1.0,
+#  'training_mean_absolute_error': 2.220446049250313e-16,
+#  'training_mean_squared_error': 1.9721522630525295e-31,
+#  'training_r2_score': 1.0,
+#  'training_root_mean_squared_error': 4.440892098500626e-16}
+
+pprint(tags)
+# {'estimator_class': 'sklearn.linear_model._base.LinearRegression',
+#  'estimator_name': 'LinearRegression'}
+
+pprint(artifacts)
+# ['model/MLmodel', 'model/conda.yaml', 'model/model.pkl']
+```
+
+#### Databricks autologging
+
+Databricks Autologging is a no-code solution that extends MLflow automatic logging to deliver automatic experiment tracking for machine learning training sessions on Databricks.
+
+With Databricks Autologging, model parameters, metrics, files, and lineage information are automatically captured when you train models from a variety of popular machine learning libraries. Training sessions are recorded as MLflow tracking runs. Model files are also tracked so you can easily log them to the MLflow Model Registry and deploy them for real-time scoring with Model Serving.
+
+#### Hyperparameter tuning with HyperOpt
+
+```Python
+from hyperopt import SparkTrials
+spark_trials = SparkTrials()
+ 
+def objective(C):
+    clf = SVC(C=C)
+    accuracy = cross_val_score(clf, X, y).mean()
+    return {'loss': -accuracy, 'status': STATUS_OK}
+
+with mlflow.start_run():
+  argmin = fmin(
+    fn=objective,
+    space=search_space,
+    algo=algo,
+    max_evals=16,
+    trials=spark_trials)
+```
+
+##### SparkTrials and MLflow
+
+Databricks Runtime ML supports logging to MLflow from workers. You can add custom logging code in the objective function you pass to Hyperopt.
+
+SparkTrials logs tuning results as nested MLflow runs as follows:
+
+Main or parent run: The call to `fmin()` is logged as the main run. If there is an active run, SparkTrials logs to this active run and does not end the run when `fmin()` returns. If there is no active run, SparkTrials creates a new run, logs to it, and ends the run before `fmin()` returns.
+
+Child runs: Each hyperparameter setting tested (a “trial”) is logged as a child run under the main run. MLflow log records from workers are also stored under the corresponding child runs.
+
+When calling `fmin()`, Databricks recommends active MLflow run management; that is, wrap the call to `fmin()` inside a with mlflow.start_run(): statement. This ensures that each `fmin()` call is logged to a separate MLflow main run, and makes it easier to log extra tags, parameters, or metrics to that run.
+
+When using Hyperopt with MLlib and other distributed training algorithms, do not pass a `trials` argument to `fmin()`. When you do not include the `trials` argument, Hyperopt uses the default `Trials` class, which runs on the cluster driver. Hyperopt needs to evaluate each trial on the driver node so that each trial can initiate distributed training jobs.
+
+Do not use the `SparkTrials` class with `MLlib`. `SparkTrials` is designed to distribute trials for algorithms that are not themselves distributed. MLlib uses distributed computing already and is not compatible with `SparkTrials`.
+
+
 ### Log and view artifacts like SHAP plots, custom visualizations, feature data, images, and metadata
+
+#### Log artifacts
+```Python
+# Log a local file or directory as an artifact of the currently active run
+mlflow.log_artifact(
+    local_path: str,
+    artifact_path: Optional[str] = None)
+
+# Log all the contents of a local directory as artifacts of the run
+mlflow.log_artifacts(
+    local_dir: str,
+    artifact_path: Optional[str] = None) 
+
+# Log a figure as an artifact. The following figure objects are supported:
+# - matplotlib.figure.Figure
+# - plotly.graph_objects.Figure
+mlflow.log_figure(
+    figure: Union[matplotlib.figure.Figure, plotly.graph_objects.Figure],
+    artifact_file: str,
+    *, save_kwargs: Optional[Dict[str, Any]] = None)
+
+# Log an image as an artifact. The following image objects are supported:
+# numpy.ndarray, PIL.Image.Image
+mlflow.log_image(
+    image: Union[numpy.ndarray, PIL.Image.Image],
+    artifact_file: str)
+```
+
+#### Load artifacts
+```Python
+# Download an artifact file or directory to a local directory.
+mlflow.artifacts.download_artifacts(
+    artifact_uri: Optional[str] = None,
+    run_id: Optional[str] = None,
+    artifact_path: Optional[str] = None,
+    dst_path: Optional[str] = None,
+    tracking_uri: Optional[str] = None) 
+
+# Loads artifact contents as a PIL.Image.Image object
+mlflow.artifacts.load_image(artifact_uri: str)    
+
+```
