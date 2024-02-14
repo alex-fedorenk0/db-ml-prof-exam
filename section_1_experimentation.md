@@ -355,6 +355,13 @@ mlflow.xgboost.log_model(
 
 ### Programmatically access and use data, metadata, and models from MLflow experiments
 
+#### Load experiment data by od as spark df
+```Python
+df = spark.read.format("mlflow-experiment").load("3270527066281272")
+filtered_df = df.filter("metrics.loss < 0.01 AND params.learning_rate > '0.001'")
+display(filtered_df)
+```
+
 #### Search experiments programmatically
 ```Python
 mlflow.search_experiments(
