@@ -355,7 +355,7 @@ mlflow.xgboost.log_model(
 
 ### Programmatically access and use data, metadata, and models from MLflow experiments
 
-#### Load experiment data by od as spark df
+#### Load experiment data by id and query runs as spark df
 ```Python
 df = spark.read.format("mlflow-experiment").load("3270527066281272")
 filtered_df = df.filter("metrics.loss < 0.01 AND params.learning_rate > '0.001'")
