@@ -205,28 +205,28 @@ Converting a batch deployment pipeline inference in Databricks to a streaming de
 **1. Define Stream from Source:**
 Instead of reading data from a static source like a file or a database, in a streaming deployment, you need to define a stream from a real-time data source. Databricks supports a variety of streaming sources including Kafka, Flume, and Kinesis among others.
 
-```python
+```Python
 streamingDataFrame = spark.readStream.format('source').option('option', 'value').load()
 ```
 
 **2. Apply Transformations:**
 Similar to batch processing, you can apply transformations on a streaming DataFrame. Most transformations that are available for static DataFrame are supported for streaming DataFrames as well.
 
-```python
+```Python
 transformedStream = streamingDataFrame.transform(transformationFunction)
 ```
 
 **3. Define ML Model:**
 Define your machine learning model. This could be a model you have previously trained on batch data. You can then progressively apply the inference model on the data as it is streaming in.
 
-```python
+```Python
 predictions = model.transform(transformedStream)
 ```
 
 **4. Write Stream to Sink:**
 Once you have your transformed streaming DataFrame, you can write it out to a sink, which could be a file system, a database, or another streaming system. You can choose to trigger the streaming query manually or set it to trigger after an interval.
 
-```python
+```Python
 query = predictions.writeStream\
         .outputMode('append')\
         .format('sink')\
@@ -244,31 +244,31 @@ Converting a batch deployment pipeline that writes to a database or a file syste
 
 **1. Define Stream from Source:** Similar to the batch system, you need to read data from a source but this time the data comes in real-time.
 
-    ```python
-    streamingDataFrame = spark.readStream.format('source_format').option('option', 'value').load('source_path')
-    ```
+```Python
+streamingDataFrame = spark.readStream.format('source_format').option('option', 'value').load('source_path')
+```
 
 **2. Apply Transformations:** Apply necessary transformations to the data just as you would do in a batch pipeline. 
 
-    ```python
-    transformedStream = streamingDataFrame.transform(transformationFunction)
-    ```
+```Python
+transformedStream = streamingDataFrame.transform(transformationFunction)
+```
 
 **3. Write the Streams:** Unlike in the batch system (where you use `write()` to write the DataFrame to a location), here you should use `writeStream` method to continuously write the streaming data to the defined sink.
 
-    ```python
-    query = transformedStream.writeStream\
+```Python
+query = transformedStream.writeStream\
         .outputMode('append')\
         .format('sink_format')\
         .option('option', 'value')\
         .start('sink_path')
-    ```
+```
 
    In this snippet, 'append' is the output mode indicating that only new records should be added to the output sink, which can be a directory in a file system, a database, or a dashboard.
 
 **4. Monitor and Manage Streaming Query:** `writeStream.start()` returns a StreamingQuery object, which can be used to monitor the process. Databricks also provides a convenient web UI to visualize the streaming process.
 
-```python
+```Python
 query.id    # get the unique identifier of the running query that persists across restarts from checkpoint data
 query.runId # get the unique id of this run of the query, which will be generated at every start/restart
 query.name  # get the name of the auto-generated or user-specified name
