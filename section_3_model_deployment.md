@@ -129,6 +129,9 @@ https://databricks.com/blog/design-patterns-batch-processing-financial-services
 
 ## Streaming
 
+https://www.databricks.com/blog/streaming-production-collected-best-practices
+https://www.databricks.com/blog/streaming-production-collected-best-practices-part-2
+
 ### Describe Structured Streaming as a common processing tool for ETL pipelines
 
 Structured Streaming is a scalable and fault-tolerant stream processing engine built into the Apache Spark and the Spark SQL API. It allows you to express your streaming computation in the same way you would express a batch computation on static data. 
