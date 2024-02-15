@@ -4,7 +4,34 @@
 
 ### Describe batch deployment as the appropriate use case for the vast majority of deployment use cases
 
+Batch deployment is the appropriate use case for the vast majority of deployment scenarios where the focus is on processing large volumes of data in a batch fashion. In batch deployment, data is collected over a certain period or in specific intervals, and then processed in one go.
+
+Batch deployment is particularly well-suited for scenarios where the data is not time-sensitive and can be processed offline. It allows for efficient utilization of resources as the processing can be scheduled during off-peak hours or when the system is idle.
+
+Some common use cases for batch deployment include:
+
+Data preprocessing: Batch deployment is often used to preprocess and transform raw data into a more usable format. This can include cleaning, aggregating, and transforming data before it is used for further analysis or modeling.
+
+Training machine learning models: Batch deployment is commonly used for training machine learning models on large datasets. By processing data in batches, it allows for parallelization and distributed computing, enabling faster model training.
+
+ETL (Extract, Transform, Load) pipelines: Batch deployment is frequently used for ETL pipelines, where data is extracted from various sources, transformed into a standardized format, and loaded into a data warehouse or data lake.
+
+Generating reports and insights: Batch deployment is suitable for generating periodic reports or insights from large datasets. This can include generating daily, weekly, or monthly reports for business analytics or financial analysis.
+
+In summary, batch deployment is ideal for scenarios where data processing can be done offline in large volumes. It allows for efficient resource utilization and is commonly used for data preprocessing, training machine learning models, ETL pipelines, and generating reports.
+
 ### Identify how batch deployment computes predictions and saves them somewhere for later use
+Batch deployment in Databricks typically involves the following steps to compute predictions and save them for later use:
+
+Prepare the data: First, you need to prepare the data that you want to make predictions on. This can involve loading the data from a file or a database, performing any necessary preprocessing or feature engineering, and converting the data into a format suitable for the model.
+
+Load the model: Next, you need to load the pre-trained model that you want to use for making predictions. Databricks supports various machine learning frameworks like TensorFlow, PyTorch, and Scikit-learn, so you can load models trained using these frameworks.
+
+Compute predictions: Once the data and the model are ready, you can use Databricks to compute predictions on the input data. This typically involves using the model to make predictions on batches of data, rather than individual data points. Batch prediction can be more efficient and scalable, especially when dealing with large datasets.
+
+Save the predictions: After computing the predictions, you can save them somewhere for later use. Databricks provides different options for saving the predictions, depending on your requirements. You can save the predictions as a new file in a supported format like Parquet or CSV, store them in a database or data warehouse, or even write them back to the same source from where the input data was loaded.
+
+Overall, the process of batch deployment in Databricks involves preparing the data, loading the model, computing predictions on the input data, and saving the predictions for later use. This allows you to efficiently make predictions at scale and store the results for further analysis or downstream use.
 
 ### Identify live serving benefits of querying precomputed batch predictions
 
@@ -22,7 +49,30 @@ For less performant data storage in batch model deployment on Databricks, you mi
 
 ### Load registered models with load_model
 
+```Python
+import mlflow.sklearn
+
+model_uri = "runs:/<run_id>/run-relative-artifact-path"
+# or model_uri = "models:/<model_name>/<version>"
+
+model = mlflow.sklearn.load_model(model_uri=model_uri)
+```
+
 ### Deploy a single-node model in parallel using spark_udf
+
+```Python
+import mlflow.pyfunc
+from pyspark.sql.functions import struct
+
+run_id1 = "<run-id1>"
+model_uri = "runs:/" + run_id1 + "/model"
+pyfunc_udf = mlflow.pyfunc.spark_udf(spark, model_uri=model_uri)
+
+dataframe = spark.createDataFrame(data.drop(["label"], axis=1))
+columns = dataframe.columns
+predicted_df = dataframe.withColumn("prediction", pyfunc_udf(struct(*columns)))
+display(predicted_df)
+```
 
 ### Identify z-ordering as a solution for reducing the amount of time to read predictions from a table
 
@@ -60,6 +110,22 @@ By carefully selecting the appropriate partitioning column based on the query pa
 
 ### Describe the practical benefits of using the score_batch operation
 
+The score_batch operation is a practical feature that provides several benefits when working with machine learning models in Databricks.
+
+Efficiency: The score_batch operation allows you to perform batch scoring, which means you can score multiple data points in one operation. This significantly improves the efficiency of scoring large datasets, as it reduces the overhead of making individual predictions.
+
+Scalability: By leveraging the score_batch operation, you can easily scale your scoring process to handle large datasets. This is particularly useful when you have millions or billions of data points that need to be scored, as it allows you to process them in parallel, taking advantage of Databricks' distributed computing capabilities.
+
+Cost-Effectiveness: Since the score_batch operation enables batch scoring, it reduces the number of API calls and the associated costs. This is especially beneficial when using cloud-based services, such as Databricks, where you pay based on resource consumption. By making fewer API calls, you can optimize your costs and minimize unnecessary compute expenses.
+
+Enhanced Data Pipelines: The score_batch operation integrates seamlessly with Databricks' data pipelines. You can easily incorporate batch scoring into your existing data workflows, enabling you to automate the scoring process and generate predictions as part of your data processing pipeline.
+
+Real-Time Scoring: While the score_batch operation is primarily designed for batch scoring, it can also be used for real-time scoring by processing smaller batches of data in near real-time. This flexibility allows you to adapt the scoring operation to your specific requirements, whether you need to score large datasets or handle real-time predictions.
+
+Overall, the score_batch operation offers practical benefits in terms of efficiency, scalability, cost-effectiveness, integration with data pipelines, and the ability to handle both batch and real-time scoring scenarios.
+
+Source
+https://databricks.com/blog/design-patterns-batch-processing-financial-services
 
 ## Streaming
 
