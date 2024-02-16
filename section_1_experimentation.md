@@ -781,6 +781,24 @@ mlflow.log_image(
     artifact_file: str)
 ```
 
+Log an SHAP explainer as an MLflow artifact for the current run.
+```Python
+mlflow.shap.log_explainer(
+    explainer,
+    artifact_path,
+    serialize_model_using_mlflow=True,
+    conda_env=None,
+    code_paths=None,
+    registered_model_name=None,
+    signature: mlflow.models.signature.ModelSignature = None,
+    input_example: Union[pandas.core.frame.DataFrame, numpy.ndarray, dict, list, csr_matrix, csc_matrix, str, bytes, tuple] = None,
+    await_registration_for=300,
+    pip_requirements=None,
+    extra_pip_requirements=None,
+    metadata=None)
+```
+
+
 #### Load artifacts
 ```Python
 # Download an artifact file or directory to a local directory.
